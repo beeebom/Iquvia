@@ -1,0 +1,85 @@
+// Qlik Data Load Script Example
+// This script demonstrates various Qlik features
+
+// Variable definitions
+LET vYear = 2024;
+SET vDataPath = 'data/';
+
+// Mapping table for country codes
+CountryMap:
+MAPPING LOAD
+    CountryCode,
+    CountryName
+FROM countries.csv
+WHERE Active = 1;
+
+// Load customer data
+Customers:
+LOAD
+    CustomerID,
+    CustomerName,
+    Upper(Email) as Email,
+    CountryCode,
+    ApplyMap('CountryMap', CountryCode, 'Unknown') as Country
+FROM $(vDataPath)customers.csv;
+
+// Load orders with calculated fields
+Orders:
+LOAD
+    OrderID,
+    CustomerID,
+    OrderDate,
+    Year(OrderDate) as OrderYear,
+    Month(OrderDate) as OrderMonth,
+    Amount,
+    Amount * 1.2 as AmountWithTax
+FROM $(vDataPath)orders.csv
+WHERE Year(OrderDate) = $(vYear);
+
+// Join order details
+LEFT JOIN (Orders)
+LOAD
+    OrderID,
+    ProductID,
+    Quantity,
+    UnitPrice
+FROM $(vDataPath)order_details.csv;
+
+// Create sales summary with aggregation
+SalesSummary:
+LOAD
+    CustomerID,
+    OrderYear,
+    Count(OrderID) as TotalOrders,
+    Sum(Amount) as TotalAmount,
+    Avg(Amount) as AvgAmount
+RESIDENT Orders
+GROUP BY CustomerID, OrderYear;
+
+// Load product categories inline
+Categories:
+LOAD * INLINE [
+CategoryID, CategoryName
+1, Electronics
+2, Clothing
+3, Food
+4, Books
+];
+
+// Load products
+Products:
+LOAD
+    ProductID,
+    ProductName,
+    CategoryID,
+    Price
+FROM $(vDataPath)products.csv;
+
+// Create distinct customer list
+UniqueCustomers:
+LOAD DISTINCT
+    CustomerID,
+    CustomerName,
+    Country
+RESIDENT Customers;
+
