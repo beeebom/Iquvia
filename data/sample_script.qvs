@@ -1,3 +1,5 @@
+// Qlik Data Load Script Example
+// This script demonstrates various Qlik features
 
 // Variable definitions
 LET vYear = 2024;
